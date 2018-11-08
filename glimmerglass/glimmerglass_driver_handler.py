@@ -6,6 +6,7 @@ import re
 from common.driver_handler_base import DriverHandlerBase
 from common.helper.system_helper import get_file_folder
 from common.resource_info import ResourceInfo
+from common.configuration_parser import ConfigurationParser
 
 
 class GlimmerglassDriverHandler(DriverHandlerBase):
@@ -303,7 +304,7 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
 
 if __name__ == '__main__':
     import sys
-    from common.configuration_parser import ConfigurationParser
+
     from cloudshell.core.logger.qs_logger import get_qs_logger
     from common.xml_wrapper import XMLWrapper
 
