@@ -5,7 +5,7 @@
     "connection_type": "tcp",
     "connection_port": 10034,
     "device_login_prompt": "<",
-    "device_prompt": ";\\s+<",
+    "device_prompt": ";\\s*<",
     "server_timeout": 10,
     "runtime_configuration": "glimmerglass_runtime_configuration.json"
   },
