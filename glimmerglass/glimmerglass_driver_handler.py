@@ -4,7 +4,6 @@
 import re
 
 from common.driver_handler_base import DriverHandlerBase
-from common.helper.system_helper import get_file_folder
 from common.resource_info import ResourceInfo
 from common.configuration_parser import ConfigurationParser
 from glimmerglass.tcp_session import GGTCPSession
@@ -234,13 +233,13 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
     def map_uni(self, src_port, dst_port, command_logger=None):
         if self._service_mode.lower() == u"tl1":
             self._session.send_command("", re_string=self._login_prompt)
-            src_in_port = min(int(src_port[1]), int(dst_port[1]))
-
-            dst_out_port = max(int(src_port[1]), int(dst_port[1]))
-
             if self._port_logical_mode.lower() == "logical":
-                src_in_port = str(10000 + int(src_in_port.split('-')[0]))
-                dst_out_port = str(20000 + int(dst_out_port.split('-')[1]))
+                src_in_port = str(10000 + int(src_port[1].split('-')[0]))
+                dst_out_port = str(20000 + int(dst_port[1].split('-')[1]))
+            else:
+                src_in_port = min(int(src_port[1]), int(dst_port[1]))
+
+                dst_out_port = max(int(src_port[1]), int(dst_port[1]))
 
             command = "ent-crs-fiber::{0},{1}:{2};".format(src_in_port, dst_out_port, self._incr_ctag())
             command_result = self._session.send_command(command, re_string=self._prompt)
@@ -306,21 +305,3 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
 
     def set_speed_manual(self, command_logger=None):
         pass
-
-
-if __name__ == '__main__':
-    import sys
-
-    from cloudshell.core.logger.qs_logger import get_qs_logger
-    from common.xml_wrapper import XMLWrapper
-
-    ConfigurationParser.set_root_folder(get_file_folder(sys.argv[0].replace("/glimmerglass/", "/")))
-    gglass = GlimmerglassDriverHandler()
-    plogger = get_qs_logger('Autoload', 'GlimmerGlass', 'GlimmerGlass')
-
-    gglass.login('localhost:1023', 'admin', '********', plogger)
-    result = gglass.get_resource_description('localhost:1023')
-    result1 = gglass.get_resource_description('localhost:1023')
-    print XMLWrapper.get_string_from_xml(result)
-    print XMLWrapper.get_string_from_xml(result1)
-
