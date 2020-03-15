@@ -89,7 +89,6 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
         return device_data
 
     def get_resource_description(self, address, command_logger=None):
-        self._session.send_command("", re_string=self._login_prompt)
         device_data = self._get_device_data()
 
         self._resource_info = ResourceInfo()
@@ -232,7 +231,6 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
 
     def map_uni(self, src_port, dst_port, command_logger=None):
         if self._service_mode.lower() == u"tl1":
-            self._session.send_command("", re_string=self._login_prompt)
             if self._port_logical_mode.lower() == "logical":
                 src_in_port = str(10000 + int(src_port[1].split('-')[0]))
                 dst_out_port = str(20000 + int(dst_port[1].split('-')[1]))
@@ -250,7 +248,6 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
 
     def map_bidi(self, src_port, dst_port, command_logger=None):
         if self._service_mode.lower() == u"tl1":
-            self._session.send_command("", re_string=self._login_prompt)
             if self._port_logical_mode.lower() == "logical":
                 source_port = str(src_port[1]).split('-')
                 destination_port = str(dst_port[1]).split('-')
@@ -268,11 +265,10 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
                                 "Bidirectional mapping supported only in logical port mode".format(self._service_mode))
         else:
             raise Exception(self.__class__.__name__,
-                                "Selected '{}' connection type is not supported".format(self._service_mode))
+                            "Selected '{}' connection type is not supported".format(self._service_mode))
 
     def map_clear_to(self, src_port, dst_port, command_logger=None):
         if self._service_mode.lower() == "tl1":
-            self._session.send_command("", re_string=self._login_prompt)
             src_in_port = src_port[1]
             if self._port_logical_mode.lower() == "logical":
                 source_port = src_port[1].split('-')
@@ -287,7 +283,6 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
 
     def map_clear(self, src_port, dst_port, command_logger=None):
         if self._service_mode.lower() == "tl1":
-            self._session.send_command("", re_string=self._login_prompt)
             if self._port_logical_mode.lower() == "logical":
                 source_port = src_port[1].split('-')
                 destination_port = dst_port[1].split('-')
