@@ -4,9 +4,9 @@
 import re
 
 from common.driver_handler_base import DriverHandlerBase
-from common.helper.system_helper import get_file_folder
 from common.resource_info import ResourceInfo
 from common.configuration_parser import ConfigurationParser
+from glimmerglass.tcp_session import GGTCPSession
 
 
 class GlimmerglassDriverHandler(DriverHandlerBase):
@@ -24,6 +24,8 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
         self._port_logical_mode = ConfigurationParser.get("driver_variable", "port_mode")
         self._custom_port_pairing = ConfigurationParser.get("driver_variable", "custom_port_pairing") or dict()
         self._login_prompt = ConfigurationParser.get("common_variable", "device_login_prompt")
+        self._prompt = ConfigurationParser.get("common_variable", "device_prompt")
+        self._session = GGTCPSession()
 
     def _incr_ctag(self):
         self._ctag += 1
@@ -36,7 +38,7 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
             address_data = address.split(":")
             ip = address_data[0]
             port = int(address_data[1])
-        if self._service_mode.lower() == "tl1":
+        if self._service_mode.lower() == u"tl1":
             command = 'ACT-USER::{0}:{1}::{2};'.format(username, self._ctag, password)
             command_result = self._session.connect(host=ip, username=username, password=password, command=command,
                                                    re_string=self._login_prompt, port=port)
@@ -59,9 +61,9 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
     def _get_device_data(self):
         device_data = dict()
 
-        if self._service_mode.lower() == "scpi":
+        if self._service_mode.lower() == u"scpi":
             pass
-        elif self._service_mode.lower() == "tl1":
+        elif self._service_mode.lower() == u"tl1":
             command = "rtrv-system-info:::{0};".format(self._incr_ctag())
             device_data["system_info"] = self._session.send_command(command, re_string=self._prompt)
 
@@ -87,7 +89,6 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
         return device_data
 
     def get_resource_description(self, address, command_logger=None):
-        self._session.send_command("", re_string=self._login_prompt)
         device_data = self._get_device_data()
 
         self._resource_info = ResourceInfo()
@@ -229,15 +230,14 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
         return self._resource_info.convert_to_xml()
 
     def map_uni(self, src_port, dst_port, command_logger=None):
-        if self._service_mode.lower() == "tl1":
-            self._session.send_command("", re_string=self._login_prompt)
-            src_in_port = min(int(src_port[1]), int(dst_port[1]))
-
-            dst_out_port = max(int(src_port[1]), int(dst_port[1]))
-
+        if self._service_mode.lower() == u"tl1":
             if self._port_logical_mode.lower() == "logical":
-                src_in_port = str(10000 + int(src_in_port.split('-')[0]))
-                dst_out_port = str(20000 + int(dst_out_port.split('-')[1]))
+                src_in_port = str(10000 + int(src_port[1].split('-')[0]))
+                dst_out_port = str(20000 + int(dst_port[1].split('-')[1]))
+            else:
+                src_in_port = min(int(src_port[1]), int(dst_port[1]))
+
+                dst_out_port = max(int(src_port[1]), int(dst_port[1]))
 
             command = "ent-crs-fiber::{0},{1}:{2};".format(src_in_port, dst_out_port, self._incr_ctag())
             command_result = self._session.send_command(command, re_string=self._prompt)
@@ -247,8 +247,7 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
                             "Selected '{}' connection type is not supported".format(self._service_mode))
 
     def map_bidi(self, src_port, dst_port, command_logger=None):
-        if self._service_mode.lower() == "tl1":
-            self._session.send_command("", re_string=self._login_prompt)
+        if self._service_mode.lower() == u"tl1":
             if self._port_logical_mode.lower() == "logical":
                 source_port = str(src_port[1]).split('-')
                 destination_port = str(dst_port[1]).split('-')
@@ -263,11 +262,13 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
                 command_logger.info(command_result)
             else:
                 raise Exception(self.__class__.__name__,
-                                "Selected '{}' connection type is not supported".format(self._service_mode))
+                                "Bidirectional mapping supported only in logical port mode".format(self._service_mode))
+        else:
+            raise Exception(self.__class__.__name__,
+                            "Selected '{}' connection type is not supported".format(self._service_mode))
 
     def map_clear_to(self, src_port, dst_port, command_logger=None):
         if self._service_mode.lower() == "tl1":
-            self._session.send_command("", re_string=self._login_prompt)
             src_in_port = src_port[1]
             if self._port_logical_mode.lower() == "logical":
                 source_port = src_port[1].split('-')
@@ -282,7 +283,6 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
 
     def map_clear(self, src_port, dst_port, command_logger=None):
         if self._service_mode.lower() == "tl1":
-            self._session.send_command("", re_string=self._login_prompt)
             if self._port_logical_mode.lower() == "logical":
                 source_port = src_port[1].split('-')
                 destination_port = dst_port[1].split('-')
@@ -300,21 +300,3 @@ class GlimmerglassDriverHandler(DriverHandlerBase):
 
     def set_speed_manual(self, command_logger=None):
         pass
-
-
-if __name__ == '__main__':
-    import sys
-
-    from cloudshell.core.logger.qs_logger import get_qs_logger
-    from common.xml_wrapper import XMLWrapper
-
-    ConfigurationParser.set_root_folder(get_file_folder(sys.argv[0].replace("/glimmerglass/", "/")))
-    gglass = GlimmerglassDriverHandler()
-    plogger = get_qs_logger('Autoload', 'GlimmerGlass', 'GlimmerGlass')
-
-    gglass.login('localhost:1023', 'admin', '********', plogger)
-    result = gglass.get_resource_description('localhost:1023')
-    result1 = gglass.get_resource_description('localhost:1023')
-    print XMLWrapper.get_string_from_xml(result)
-    print XMLWrapper.get_string_from_xml(result1)
-
